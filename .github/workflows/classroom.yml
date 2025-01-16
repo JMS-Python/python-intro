@@ -1,0 +1,38 @@
+name: Python tests
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+      run: | 
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+    - name: Run Tests
+      run: |
+        pytest . --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+    - name: Mypy Check
+      uses: jpetrucciani/mypy-check@0.991
+      with:
+        mypy_flags: '--no-incremental --ignore_missing_imports --disallow_untyped_defs --disallow_incomplete_defs --disallow_subclassing_any --disallow_any_generics --no_implicit_optional --warn_redundant_casts --warn_unused_ignores --warn_unreachable --allow_untyped_decorators --enable_incomplete_feature "NewGenericSyntax"'
+        python_version: '3.11'
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
